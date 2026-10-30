@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "image-sheet-splitter"
-version = "1.7.0"
+version = "1.7.1"
 description = "Portable Windows utility for splitting image sheets separated by a solid background."
 requires-python = ">=3.10"
 dependencies = [

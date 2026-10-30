@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-- Version: 1.7.0; stable filename: Image Sheet Splitter.exe.
+- Published baseline: v1.7.0. Current development candidate: v1.7.1 on fix/v1.7.1-updater, not yet released; stable filename remains Image Sheet Splitter.exe.
 - Public repository: https://github.com/TechSavage1989/Image-Sheet-Splitter; default branch: main.
 - Continued from prepared main commit d80ad901f729ade37b1e509532c2c67b465205ec, not from a new implementation.
 - Source sync and first 1.7.0 release publication are authorized. This is not permission for visibility/access changes, credentials, unrelated features, or future releases.
@@ -79,3 +79,12 @@ Updater manifest feed:
 https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/latest/download/update-manifest.json
 
 Hosted CI on the final source/doc fix commit must be checked before declaring these later automation changes validated.
+## v1.7.1 update-test candidate
+
+The user confirmed that the installed, published v1.7.0 application launches and works. v1.7.1 is a small visibly identifiable update, showing its version beside the main-window title. Source/project/Windows version metadata are all 1.7.1. All existing splitter and packaging features, icon, settings paths, and stable executable filename are preserved.
+
+Native Windows CI run 41115966710 failed in the compiled updater tests. A diagnostic branch run 41117416383 confirmed that the compiled rollback test passed but the success tests left PyInstaller bootloader processes holding disposable test EXEs open. The test harness now terminates all test-owned processes, including the parent, and waits for the file to unlock. Updater rollback is also hardened with process/parent validation, a bounded restore retry, and an explicit retained-backup failure if restoration remains blocked. Compiled-test expectations use the candidate app version while synthetic fixtures continue to model 1.6.0 to 1.7.0.
+
+These changes require fresh hosted Windows CI validation on the exact candidate commit before merge or publication. The initial published v1.7.0 updater predates improvements to quoted paths, process/health validation, and rollback. The real v1.7.0-to-v1.7.1 update must be tested on Windows and may require a manual portable replacement if the older helper fails, especially when account paths contain spaces. Do not claim that end-to-end upgrade is verified until the actual test succeeds.
+
+After the development PR passes, merge without overwriting newer main work, verify CI on the exact merged commit, and publish a new distinct v1.7.1 release only with approval. Never overwrite the v1.7.0 release.

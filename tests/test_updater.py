@@ -32,6 +32,7 @@ class UpdaterTests(unittest.TestCase):
 
     def test_version_comparison(self):
         self.assertTrue(is_newer_version("1.8.0", "1.7.0"))
+        self.assertTrue(is_newer_version("1.7.1", "1.7.0"))
         self.assertFalse(is_newer_version("1.7.0", "1.7.0"))
         self.assertFalse(is_newer_version("1.6.9", "1.7.0"))
 

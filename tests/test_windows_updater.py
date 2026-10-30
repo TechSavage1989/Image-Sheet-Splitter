@@ -13,6 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from image_sheet_splitter import paths, updater
+from image_sheet_splitter.version import APP_VERSION
 
 
 @unittest.skipUnless(os.name == "nt", "Requires native Windows processes and filesystem")
@@ -75,8 +76,12 @@ class WindowsUpdaterTests(unittest.TestCase):
                 plan = json.loads(plan_path.read_text())
                 # The real installed app has exited; use a PID that is no longer alive.
                 plan["old_pid"] = 2147483647
-                if compiled and mode == "version":
-                    plan["to_version"] = "9.9.9"  # Force rejection of the actual app's health response.
+                if compiled:
+                    # Synthetic fixtures still report 1.7.0. A compiled EXE
+                    # reports the version of the candidate being tested.
+                    plan["to_version"] = APP_VERSION
+                    if mode == "version":
+                        plan["to_version"] = "9.9.9"
                 updater._atomic_json_write(plan_path, plan)
                 backup = Path(plan["backup_exe"])
                 backup.write_bytes(b"older rollback replaced only after preflight")
@@ -94,7 +99,10 @@ class WindowsUpdaterTests(unittest.TestCase):
                     with mock.patch.object(updater.subprocess, "Popen", side_effect=capture):
                         manager.launch_install_helper(plan_path)
                     code = processes[0].wait(timeout=70)
+                    helper_output.flush()
                     output = (root / "helper.log").read_text(errors="replace")
+                    if code not in (0, 30):
+                        print(f"Unexpected update helper exit {code}; native helper log:\n{output}", file=sys.stderr, flush=True)
                     if mode == "healthy" and not collision:
                         self.assertEqual(code, 0, output)
                         self.assertEqual(old.read_bytes(), candidate.read_bytes())
@@ -105,10 +113,10 @@ class WindowsUpdaterTests(unittest.TestCase):
                             self.assertEqual(args["--post-update-plan"], str(plan_path.resolve()))
                             self.assertEqual(args["--post-update-token"], plan["health_token"])
                         health = json.loads(Path(plan["health_marker"]).read_text())
-                        self.assertEqual(health["version"], "1.7.0")
+                        self.assertEqual(health["version"], APP_VERSION if compiled else "1.7.0")
                         self.assertEqual(health["token"], plan["health_token"])
                     else:
-                        self.assertEqual(code, 30)
+                        self.assertEqual(code, 30, output)
                         self.assertEqual(old.read_bytes(), old_bytes)
                         if collision:
                             self.assertEqual(target.read_bytes(), target_before)
@@ -130,7 +138,7 @@ class WindowsUpdaterTests(unittest.TestCase):
                         if compiled and path == settings:
                             # Normal startup rewrites JSON formatting; all settings must survive.
                             expected = json.loads(content)
-                            expected["app_version"] = "1.7.0"
+                            expected["app_version"] = APP_VERSION
                             self.assertEqual(json.loads(path.read_bytes()), expected)
                         else:
                             self.assertEqual(path.read_bytes(), content, str(path))
@@ -138,21 +146,46 @@ class WindowsUpdaterTests(unittest.TestCase):
                     self.assertFalse(list(install.glob("*.new")))
                 finally:
                     helper_output.close()
+                    # A PyInstaller one-file EXE has a parent bootloader and a
+                    # separate child. Killing only the health-reporting child
+                    # leaves the parent holding the image file on Windows.
+                    # Scope cleanup strictly to this disposable test's EXE path.
+                    cleanup_script = r"""
+                    $target = [IO.Path]::GetFullPath($env:ISS_TEST_TARGET)
+                    $deadline = (Get-Date).AddSeconds(20)
+                    do {
+                        $running = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+                            Where-Object { $_.ExecutablePath -and
+                                [string]::Equals($_.ExecutablePath, $target, [StringComparison]::OrdinalIgnoreCase) })
+                        if ($running.Count -eq 0) { break }
+                        foreach ($item in $running) {
+                            & (Join-Path $env:SystemRoot "System32/taskkill.exe") /PID $item.ProcessId /T /F 2>$null | Out-Null
+                        }
+                        Start-Sleep -Milliseconds 250
+                    } while ((Get-Date) -lt $deadline)
+                    """
+                    subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive",
+                                    "-Command", cleanup_script], capture_output=True, timeout=30)
+                    # The rollback fixture can still be closing. On success,
+                    # the application must no longer lock its temporary EXE.
                     health = updater._load_json(plan["health_marker"], {})
-                    if mode == "healthy" and health.get("pid"):
-                        subprocess.run(["taskkill.exe", "/PID", str(health["pid"]), "/T", "/F"], capture_output=True)
+                    if health.get("pid"):
+                        subprocess.run(["taskkill.exe", "/PID", str(health["pid"]), "/T", "/F"],
+                                       capture_output=True)
                     for process in processes:
                         if process.poll() is None:
                             process.kill()
-                            process.wait()
-                    # Include rollback fixture processes even if an assertion fails early.
-                    subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
-                                    "$deadline=(Get-Date).AddSeconds(5); do { "
-                                    "$p=Get-CimInstance Win32_Process | Where-Object ExecutablePath -eq $env:ISS_TEST_TARGET; "
-                                    "if (-not $p) { break }; Start-Sleep -Milliseconds 100 "
-                                    "} while ((Get-Date) -lt $deadline); "
-                                    "$p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"],
-                                   capture_output=True)
+                            process.wait(timeout=10)
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        try:
+                            with old.open("r+b"):
+                                pass
+                            break
+                        except PermissionError:
+                            time.sleep(0.25)
+                    else:
+                        self.fail(f"The disposable EXE remains locked after process cleanup: {old}")
 
     def test_success_preserves_generic_name_settings_and_shortcut(self):
         self.run_install()
