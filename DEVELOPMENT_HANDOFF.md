@@ -10,7 +10,7 @@
 - Default branch: main
 - Repository state at baseline inspection: one initial commit containing only a placeholder README; no AGENTS.md, handoff, source, PRs, releases, or CI.
 - Source baseline used for continuation: the latest v1.6.0 Sprite Sheet Splitter portable build kit created in the current ChatGPT conversation, because GitHub contained no newer source.
-- Publication status: this 1.7.0 source/release baseline has not been published to GitHub. Publication requires explicit approval.
+- Publication status: source is published on main. The first 1.7.0 release publication is explicitly approved, but the final release workflow dispatch remains pending because the connected GitHub tool cannot dispatch workflows or create releases directly.
 
 ## What changed in 1.7.0 development baseline
 
@@ -102,10 +102,26 @@ Negative control: tests/test_root_guard.py creates an isolated allowed tree plus
 - A source archive was generated, extracted into a clean directory with no .git metadata, and the root checker, documentation checker, syntax compilation, and all 12 tests passed again from that extracted archive.
 - Release packaging logic was exercised with a disposable test executable; the generated portable ZIP had one top-level Image Sheet Splitter folder and the manifest/hash verification passed. This disposable package is not a release candidate and does not validate PE identity.
 - Both GitHub Actions YAML files parsed successfully as YAML locally.
-- Native Windows PyInstaller build was not performed in this Linux environment.
-- Native Windows Explorer drag-and-drop, Windows version-resource validation, in-place executable replacement, rollback, custom/legacy shortcut behavior, foreground detection, and visible-window health confirmation remain target-platform validations.
+- Native Windows PyInstaller build completed successfully in hosted GitHub Actions on a windows-latest runner.
+- Windows ProductName/FileVersion validation passed in hosted CI. Native Windows Explorer drag-and-drop, interactive GUI startup, in-place executable replacement, rollback, custom/legacy shortcut behavior, foreground detection, and visible-window post-update health confirmation remain interactive target-platform validations.
 - The required previous-version-to-new-release end-to-end updater test cannot be performed yet because the repository has no prior published Image Sheet Splitter release. It must be performed on Windows before a later release is called fully verified.
-- Hosted GitHub Actions cannot be reported as passing until this baseline is explicitly published and the workflow actually runs.
+- Hosted GitHub Actions run 41097395736 passed on commit 12f70d0edc7d257173ca3e6700e6f149402ba826, including Ubuntu tests, Windows tests, clean source-archive validation, native Windows PyInstaller build, Windows version-resource verification, release packaging, release verification, and artifact upload.
+
+## Hosted CI and publication status
+
+- Initial source baseline commit: 1eea9eb12beec4079083311df6e7aa146850515e.
+- Negative-control CI run: 41097142040 failed on Windows only because the old validation command relied on Unix-style shell wildcard expansion for py_compile. Unit tests and earlier source checks passed before that failure.
+- CI portability fix commit: 12f70d0edc7d257173ca3e6700e6f149402ba826, replacing the wildcard command with python -m compileall -q src/image_sheet_splitter scripts.
+- Corrected CI run: 41097395736 completed successfully on the exact fix commit.
+- Windows release-candidate artifact ID: 12996508402, name image-sheet-splitter-windows-release-candidate.
+- The Windows job passed version metadata generation, deterministic multi-resolution icon generation, PyInstaller, verify_windows_build.py, package_release.py, verify_release.py, and artifact upload.
+- Independent artifact inspection confirmed exactly three outer files: Image_Sheet_Splitter_Windows_x64_Portable.zip, update-manifest.json, and SHA256SUMS.txt.
+- Portable ZIP SHA-256: 6821b8a50e192461afe1df5cc5e0b068abd741b9407673b8dc6b942489d9b2d0.
+- update-manifest.json SHA-256: 44fe90fdc52e4b4eed61f4c73bfd992f1ce772da86b0d7da2ff466d4de5fca2b.
+- Built Image Sheet Splitter.exe SHA-256: ce999bf2628b41757c6d69e26a762aa34c4ca651e5b4c8080b8fe8eeac536b7d.
+- The portable ZIP contains one top-level Image Sheet Splitter folder with Image Sheet Splitter.exe and README.txt.
+- The manifest identifies TechSavage1989.ImageSheetSplitter version 1.7.0 and its portable asset hash/size matches the verified ZIP.
+- No GitHub release or v1.7.0 tag exists yet. The connected GitHub integration supports repository writes and CI inspection but does not expose workflow dispatch, release creation, release-asset upload, or tag creation. The prepared Publish stable release workflow must therefore be dispatched through GitHub after final-source CI passes.
 
 ## Known migration limitation
 
@@ -113,4 +129,4 @@ The previously distributed Sprite Sheet Splitter build does not contain the new 
 
 ## Publication guidance
 
-Do not push this baseline, create a tag, or publish a GitHub release unless the user explicitly approves source/release publication. Once approved, sync the full source tree, verify CI on the exact commit, create the matching tag, build from a clean checkout/archive, publish all three update assets together, and verify the latest-release manifest URL and updater path from the previous release.
+Source publication and the first 1.7.0 release were explicitly approved in the 2026-10-30 continuation. Before dispatching the prepared release workflow, verify CI on the exact final main commit. Run Publish stable release with tag v1.7.0, ref set to that exact commit, and confirmation value publish. The workflow refuses to overwrite an existing release or move an existing mismatched tag. After publication, verify all three release assets, the latest-release manifest URL, hashes, and the updater feed. The previous-release-to-new-release updater path cannot be fully tested for this first Image Sheet Splitter release because no previous Image Sheet Splitter release exists.

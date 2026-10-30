@@ -4,13 +4,13 @@ Read this file and DEVELOPMENT_HANDOFF.md before changing the project.
 
 ## Baseline rules
 
-- The GitHub repository is the authoritative source after the first approved sync. Before that sync, the local 1.7.0 development baseline in the current handoff is newer than the repository placeholder.
+- The GitHub main branch is the authoritative source. The first approved source sync completed for the 1.7.0 baseline; always inspect main, active branches, PRs, releases, and this handoff before changing the project.
 - Preserve working splitter, drag-and-drop, Results, settings, logging, help, hover-help, and output-naming behavior unless a change is requested.
 - Stable Windows launch name: Image Sheet Splitter.exe.
 - Default user state belongs under per-user LocalAppData/ImageSheetSplitter, not beside the executable.
 - Keep only one rollback executable in the app-owned Rollback directory.
 - Do not embed GitHub credentials or API tokens.
-- Do not publish source, tags, releases, or binaries unless the user explicitly approves that publication scope.
+- The source sync and first 1.7.0 release publication were explicitly approved in the 2026-10-30 continuation. Do not treat that approval as blanket permission for later releases, visibility changes, credentials, or unrelated publication.
 - Never overwrite an existing published release.
 
 ## Repository map
@@ -61,4 +61,4 @@ Release packaging must upload these assets together for a stable release:
 - update-manifest.json
 - SHA256SUMS.txt
 
-The manifest version and release tag must match vMAJOR.MINOR.PATCH.
+The manifest version and release tag must match vMAJOR.MINOR.PATCH. The 1.7.0 release workflow is prepared but requires an explicit GitHub workflow dispatch because the connected GitHub tool cannot dispatch workflows or create releases directly.
