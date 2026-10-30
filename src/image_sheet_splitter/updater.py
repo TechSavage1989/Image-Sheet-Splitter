@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
 import ssl
 import subprocess
@@ -188,7 +189,7 @@ def validate_manifest(manifest):
     if not isinstance(asset, dict):
         raise ValueError("Windows portable update asset is invalid.")
     name = str(asset.get("name", "")).strip()
-    if not name.lower().endswith(".zip"):
+    if not name.lower().endswith(".zip") or any(char in name for char in '/\\:') or name != name.rstrip(' .'):
         raise ValueError("Portable update asset must be a ZIP archive.")
     asset_url = ensure_allowed_url(asset.get("url", ""))
     digest = str(asset.get("sha256", "")).lower().strip()
@@ -218,6 +219,10 @@ def _safe_zip_member(info):
     path = PurePosixPath(normalized)
     if not normalized or normalized.startswith("/") or path.is_absolute() or ".." in path.parts:
         raise ValueError(f"Unsafe archive path: {info.filename}")
+    # Windows drive paths, alternate data streams and normalized aliases must not
+    # escape the staging directory or overwrite a different member on extraction.
+    if any(":" in part or part != part.rstrip(" .") for part in path.parts):
+        raise ValueError(f"Unsafe Windows archive path: {info.filename}")
     mode = (info.external_attr >> 16) & 0xFFFF
     if mode and (mode & 0o170000) == 0o120000:
         raise ValueError(f"Symbolic links are not allowed in updates: {info.filename}")
@@ -505,7 +510,16 @@ class UpdateManager:
             "health_marker": str(health.resolve()),
             "from_version": self.installed_version,
             "to_version": staged["version"],
+            "health_token": secrets.token_hex(32),
         }
+        # Start-Process joins array arguments without Windows command-line quoting.
+        # Construct one correctly quoted command line before crossing into PowerShell.
+        plan["launch_arguments"] = subprocess.list2cmdline([
+            "--post-update-health", str(health.resolve()),
+            "--post-update-from", self.installed_version,
+            "--post-update-plan", str(plan_path.resolve()),
+            "--post-update-token", plan["health_token"],
+        ])
         _atomic_json_write(plan_path, plan)
         return plan_path
 
@@ -520,23 +534,40 @@ while ((Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 250
 }
 if (Get-Process -Id ([int]$plan.old_pid) -ErrorAction SilentlyContinue) { exit 20 }
-$backupDir = Split-Path -Parent $plan.backup_exe;
-New-Item -ItemType Directory -Path $backupDir -Force | Out-Null;
-if (Test-Path -LiteralPath $plan.backup_exe) { Remove-Item -LiteralPath $plan.backup_exe -Force }
-Copy-Item -LiteralPath $plan.old_exe -Destination $plan.backup_exe -Force;
-$targetDir = Split-Path -Parent $plan.target_exe;
-$tempTarget = Join-Path $targetDir 'Image Sheet Splitter.exe.new';
+$tempTarget = $plan.target_exe + '.update-' + $plan.health_token + '.new';
+$tempBackup = $plan.backup_exe + '.new';
+$replaced = $false;
+$proc = $null;
 try {
   if (($plan.old_exe -ne $plan.target_exe) -and (Test-Path -LiteralPath $plan.target_exe)) { throw 'The stable target executable already exists; refusing to overwrite it.' }
+  $backupDir = Split-Path -Parent $plan.backup_exe;
+  New-Item -ItemType Directory -Path $backupDir -Force | Out-Null;
+  Copy-Item -LiteralPath $plan.old_exe -Destination $tempBackup -Force;
+  Move-Item -LiteralPath $tempBackup -Destination $plan.backup_exe -Force;
   Copy-Item -LiteralPath $plan.staged_exe -Destination $tempTarget -Force;
-  if (Test-Path -LiteralPath $plan.target_exe) { Remove-Item -LiteralPath $plan.target_exe -Force }
-  Move-Item -LiteralPath $tempTarget -Destination $plan.target_exe -Force;
+  if ($plan.old_exe -eq $plan.target_exe) {
+    [System.IO.File]::Replace($tempTarget, $plan.target_exe, [NullString]::Value);
+  } else {
+    # File.Move refuses a collision that appears after the initial check.
+    [System.IO.File]::Move($tempTarget, $plan.target_exe);
+  }
+  $replaced = $true;
   if (Test-Path -LiteralPath $plan.health_marker) { Remove-Item -LiteralPath $plan.health_marker -Force }
-  $proc = Start-Process -FilePath $plan.target_exe -ArgumentList @('--post-update-health', $plan.health_marker, '--post-update-from', $plan.from_version, '--post-update-plan', $env:ISS_UPDATE_PLAN) -PassThru;
+  $proc = Start-Process -FilePath $plan.target_exe -ArgumentList $plan.launch_arguments -PassThru;
   $healthDeadline = (Get-Date).AddSeconds(45);
   $healthy = $false;
   while ((Get-Date) -lt $healthDeadline) {
-    if (Test-Path -LiteralPath $plan.health_marker) { $healthy = $true; break }
+    if (Test-Path -LiteralPath $plan.health_marker) {
+      try {
+        $health = Get-Content -Raw -LiteralPath $plan.health_marker | ConvertFrom-Json;
+        $healthProcess = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + [int]$health.pid);
+        # A PyInstaller one-file app reports from its child, not its bootloader PID.
+        $launchedProcess = $healthProcess -and (($healthProcess.ProcessId -eq $proc.Id) -or ($healthProcess.ParentProcessId -eq $proc.Id));
+        $healthy = ($health.status -ceq 'healthy') -and ($health.version -ceq $plan.to_version) -and ($health.token -ceq $plan.health_token) -and ($health.executable -eq $plan.target_exe) -and $launchedProcess -and ($healthProcess.ExecutablePath -eq $plan.target_exe) -and (-not $proc.HasExited);
+      } catch { $healthy = $false }
+      if (-not $healthy) { throw 'The updated application returned an invalid health response.' }
+      break
+    }
     if ($proc.HasExited) { break }
     Start-Sleep -Milliseconds 300
   }
@@ -544,11 +575,20 @@ try {
   if (($plan.old_exe -ne $plan.target_exe) -and (Test-Path -LiteralPath $plan.old_exe)) { Remove-Item -LiteralPath $plan.old_exe -Force }
   exit 0
 } catch {
-  if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-  if (Test-Path -LiteralPath $plan.target_exe) { Remove-Item -LiteralPath $plan.target_exe -Force -ErrorAction SilentlyContinue }
-  Copy-Item -LiteralPath $plan.backup_exe -Destination $plan.old_exe -Force;
-  Start-Process -FilePath $plan.old_exe -ArgumentList @('--post-update-rollback', $_.Exception.Message) | Out-Null;
+  [Console]::Error.WriteLine($_.Exception.ToString());
+  if ($proc -and -not $proc.HasExited) {
+    # Terminate the one-file bootloader AND child before restoring a locked EXE.
+    & "$env:SystemRoot\System32\taskkill.exe" /PID $proc.Id /T /F | Out-Null;
+    $proc.WaitForExit(10000) | Out-Null;
+  }
+  if ($replaced) {
+    if ($plan.old_exe -ne $plan.target_exe) { Remove-Item -LiteralPath $plan.target_exe -Force }
+    Copy-Item -LiteralPath $plan.backup_exe -Destination $plan.old_exe -Force;
+  }
+  Start-Process -FilePath $plan.old_exe -ArgumentList '--post-update-rollback "The update could not be verified or installed. The previous application was kept or restored."' | Out-Null;
   exit 30
+} finally {
+  Remove-Item -LiteralPath $tempTarget, $tempBackup -Force -ErrorAction SilentlyContinue;
 }'''
         env = os.environ.copy()
         env["ISS_UPDATE_PLAN"] = str(plan_path)

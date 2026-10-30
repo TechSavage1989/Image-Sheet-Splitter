@@ -82,9 +82,16 @@ class UpdaterTests(unittest.TestCase):
             self.assertEqual(saved["etag"], '"etag-1"')
 
     def test_zip_traversal_is_rejected(self):
-        info = zipfile.ZipInfo("../escape.exe")
-        with self.assertRaises(ValueError):
-            updater._safe_zip_member(info)
+        for name in ("../escape.exe", "C:/escape.exe", "safe/file:stream", "safe./file.exe", "safe /file.exe"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                updater._safe_zip_member(zipfile.ZipInfo(name))
+
+    def test_manifest_download_filename_cannot_escape_download_directory(self):
+        for name in ("../escape.zip", "C:\\escape.zip", "folder/escape.zip", "file:stream.zip"):
+            manifest = self.valid_manifest()
+            manifest["assets"][updater.PORTABLE_ASSET_KEY]["name"] = name
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                validate_manifest(manifest)
 
 
 if __name__ == "__main__":

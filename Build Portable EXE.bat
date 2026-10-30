@@ -47,7 +47,12 @@ if exist release rmdir /s /q release
 "%PYTHON%" -m PyInstaller --noconfirm --clean --distpath dist --workpath build-output build\windows\Image_Sheet_Splitter.spec || goto :failed
 if not exist "dist\Image Sheet Splitter.exe" goto :failed
 
+"%PYTHON%" scripts\verify_windows_build.py "dist\Image Sheet Splitter.exe" || goto :failed
+set "ISS_TEST_COMPILED_EXE=%CD%\dist\Image Sheet Splitter.exe"
+"%PYTHON%" -m unittest discover -s tests -p test_windows_updater.py -k test_compiled_app -v || goto :failed
+set "ISS_TEST_COMPILED_EXE="
 "%PYTHON%" scripts\package_release.py --exe "dist\Image Sheet Splitter.exe" || goto :failed
+"%PYTHON%" scripts\verify_release.py || goto :failed
 
 echo.
 echo BUILD COMPLETE

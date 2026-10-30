@@ -2110,7 +2110,9 @@ class App(APP_TK_BASE):
         from_version = self.runtime_args.get("post_update_from")
         try:
             self.update_idletasks()
-            healthy = bool(self.winfo_viewable()) and mark_healthy(marker, APP_VERSION)
+            healthy = bool(self.winfo_viewable()) and mark_healthy(
+                marker, APP_VERSION, self.runtime_args.get("post_update_token")
+            )
         except tk.TclError:
             healthy = False
         if healthy:

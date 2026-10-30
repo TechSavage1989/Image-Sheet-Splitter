@@ -44,7 +44,7 @@ Build requirements:
 - 64-bit Python 3.10 through 3.15 on Windows.
 - Internet access while creating the isolated build environment and installing pinned build dependencies.
 
-The current repository baseline has been syntax/unit tested in Linux. Native Windows packaging and updater replacement/rollback behavior must be validated by Windows CI or a Windows test system before a release is called verified.
+The Windows build validates the x64 executable, product/version metadata, and all 11 compiled icon sizes. Native updater tests exercise replacement and rollback in disposable folders, including paths with spaces, custom executable names, settings, and shortcuts. See the [handoff](DEVELOPMENT_HANDOFF.md) for the current verification and publication status.
 
 ## Getting started
 
@@ -112,7 +112,7 @@ If no images are detected, confirm that full separator rows/columns exist and ad
 
 If an update check fails because the computer is offline or GitHub is unavailable, the app reports that it could not verify the latest version rather than saying it is current. A throttled check will show when another check can be attempted.
 
-If an update installs but the new application does not show a healthy visible window, the update helper restores the single retained rollback copy and relaunches the prior executable. Update staging files are only cleaned after the new app reports healthy and the helper has exited.
+If an update installs but the new application does not report a healthy visible window, the update helper restores the single retained rollback copy and relaunches the prior executable. Health confirmation must match the update attempt, expected version, executable path, and launched process. An existing destination collision is preserved. Update staging files are only cleaned after the new app reports healthy and the helper has exited.
 
 Legacy manually distributed Sprite Sheet Splitter builds did not contain the updater, so the one-time rename to Image Sheet Splitter.exe cannot rewrite shortcuts created by those older builds. Recreate any legacy shortcut once when moving to the first Image Sheet Splitter release. Future updates preserve the running executable filename, including intentional custom filenames.
 
@@ -148,4 +148,4 @@ Create a clean source archive without relying on .git metadata:
 
     python scripts/package_source.py
 
-The repository's CI workflow is designed to enforce the root allowlist, run tests, build the Windows executable, and package release artifacts. Hosted CI status cannot be claimed until the workflow is committed and run on GitHub.
+The repository's CI workflow enforces the root allowlist, runs source and native Windows updater tests, builds the Windows executable, tests replacement with that compiled app, and verifies the release package. The manual release workflow repeats native validation before publishing. Check the Actions page for the result on the exact commit being released.
