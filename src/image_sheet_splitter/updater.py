@@ -576,16 +576,49 @@ try {
   exit 0
 } catch {
   [Console]::Error.WriteLine($_.Exception.ToString());
-  if ($proc -and -not $proc.HasExited) {
-    # Terminate the one-file bootloader AND child before restoring a locked EXE.
-    & "$env:SystemRoot\System32\taskkill.exe" /PID $proc.Id /T /F | Out-Null;
-    $proc.WaitForExit(10000) | Out-Null;
+  if ($proc) {
+    # Only terminate a reported child when its image and parent belong to
+    # the application launched by this particular update attempt.
+    if (Test-Path -LiteralPath $plan.health_marker) {
+      try {
+        $candidate = Get-Content -Raw -LiteralPath $plan.health_marker | ConvertFrom-Json;
+        $candidatePid = [int]$candidate.pid;
+        $child = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $candidatePid) -ErrorAction Stop;
+        if ($child -and ($child.ExecutablePath -eq $plan.target_exe) -and
+            (($child.ParentProcessId -eq $proc.Id) -or ($child.ProcessId -eq $proc.Id))) {
+          & "$env:SystemRoot\System32\taskkill.exe" /PID $candidatePid /T /F 2>$null | Out-Null;
+        }
+      } catch { }
+    }
+    if (-not $proc.HasExited) {
+      try { & "$env:SystemRoot\System32\taskkill.exe" /PID $proc.Id /T /F 2>$null | Out-Null } catch { }
+    }
+    try { $proc.WaitForExit(10000) | Out-Null } catch { }
   }
   if ($replaced) {
-    if ($plan.old_exe -ne $plan.target_exe) { Remove-Item -LiteralPath $plan.target_exe -Force }
-    Copy-Item -LiteralPath $plan.backup_exe -Destination $plan.old_exe -Force;
+    # A killed PyInstaller child can briefly leave the image file locked.
+    $restored = $false;
+    for ($attempt = 0; $attempt -lt 60; $attempt++) {
+      try {
+        if (($plan.old_exe -ne $plan.target_exe) -and (Test-Path -LiteralPath $plan.target_exe)) {
+          Remove-Item -LiteralPath $plan.target_exe -Force -ErrorAction Stop;
+        }
+        Copy-Item -LiteralPath $plan.backup_exe -Destination $plan.old_exe -Force -ErrorAction Stop;
+        $restored = $true;
+        break;
+      } catch { Start-Sleep -Milliseconds 250 }
+    }
+    if (-not $restored) {
+      [Console]::Error.WriteLine('Rollback backup retained, but the executable is still locked.');
+      exit 31;
+    }
   }
-  Start-Process -FilePath $plan.old_exe -ArgumentList '--post-update-rollback "The update could not be verified or installed. The previous application was kept or restored."' | Out-Null;
+  try {
+    Start-Process -FilePath $plan.old_exe -ArgumentList '--post-update-rollback "The update could not be verified or installed. The previous application was kept or restored."' | Out-Null;
+  } catch {
+    [Console]::Error.WriteLine('Previous executable was restored but could not be relaunched.');
+    exit 32;
+  }
   exit 30
 } finally {
   Remove-Item -LiteralPath $tempTarget, $tempBackup -Force -ErrorAction SilentlyContinue;
