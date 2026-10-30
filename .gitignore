@@ -1,0 +1,11 @@
+.build-venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+build-output/
+dist/
+release/
+*.log
+assets/icons/Image_Sheet_Splitter.ico
