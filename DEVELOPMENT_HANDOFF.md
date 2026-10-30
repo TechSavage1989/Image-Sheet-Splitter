@@ -129,4 +129,17 @@ The previously distributed Sprite Sheet Splitter build does not contain the new 
 
 ## Publication guidance
 
-Source publication and the first 1.7.0 release were explicitly approved in the 2026-10-30 continuation. Before dispatching the prepared release workflow, verify CI on the exact final main commit. Run Publish stable release with tag v1.7.0, ref set to that exact commit, and confirmation value publish. The workflow refuses to overwrite an existing release or move an existing mismatched tag. After publication, verify all three release assets, the latest-release manifest URL, hashes, and the updater feed. The previous-release-to-new-release updater path cannot be fully tested for this first Image Sheet Splitter release because no previous Image Sheet Splitter release exists.
+Source publication and the first 1.7.0 release were explicitly approved in the 2026-10-30 continuation. The first two manual release attempts failed without creating a release: run 41099894974 had a PowerShell conditional syntax error, and run 41102816840 completed build/package verification but GitHub rejected a direct tag push with the built-in workflow token because the target commit differed from current main in workflow files.
+
+The corrected release workflow uses the supported GitHub Releases API to create the missing tag and release at the verified main branch HEAD. It does not directly push a tag. A manual release must use the latest main branch, because a historical SHA with differing .github/workflows content may require a Workflows-write permission unavailable to GITHUB_TOKEN. GitHub Actions CI must pass on the exact latest main commit before dispatch.
+
+To publish manually in GitHub Actions, open "Publish stable release" and choose Run workflow on main with:
+- tag: v1.7.0
+- ref: main
+- confirm: publish
+
+Do not reuse the historical b5ef09884ef7c4955b8bc7289c5843e901e2d6cc ref from earlier instructions. The app's version remains 1.7.0; the intervening main commits only repair release automation/documentation.
+
+The workflow checks the app version, source tests, Windows executable identity, package structure and digests, refusal to overwrite an existing release, target/main equality, and an existing tag's SHA if present. After creating the release with the expected three assets, it downloads the assets from GitHub and verifies the SHA256SUMS file and final remote tag. Any failure must not be represented as successful publication.
+
+After publication, separately confirm the public latest-release manifest URL, update ZIP, asset hashes, and updater feed, then update this handoff and README to reflect the live release. The previous-release-to-new-release updater path cannot be fully tested on this first Image Sheet Splitter release because no previous Image Sheet Splitter release exists.
