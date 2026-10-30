@@ -94,7 +94,10 @@ class WindowsUpdaterTests(unittest.TestCase):
                     with mock.patch.object(updater.subprocess, "Popen", side_effect=capture):
                         manager.launch_install_helper(plan_path)
                     code = processes[0].wait(timeout=70)
+                    helper_output.flush()
                     output = (root / "helper.log").read_text(errors="replace")
+                    if code not in (0, 30):
+                        print(f"Unexpected update helper exit {code}; native helper log:\n{output}", file=sys.stderr, flush=True)
                     if mode == "healthy" and not collision:
                         self.assertEqual(code, 0, output)
                         self.assertEqual(old.read_bytes(), candidate.read_bytes())
@@ -108,7 +111,7 @@ class WindowsUpdaterTests(unittest.TestCase):
                         self.assertEqual(health["version"], "1.7.0")
                         self.assertEqual(health["token"], plan["health_token"])
                     else:
-                        self.assertEqual(code, 30)
+                        self.assertEqual(code, 30, output)
                         self.assertEqual(old.read_bytes(), old_bytes)
                         if collision:
                             self.assertEqual(target.read_bytes(), target_before)
