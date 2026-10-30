@@ -141,21 +141,46 @@ class WindowsUpdaterTests(unittest.TestCase):
                     self.assertFalse(list(install.glob("*.new")))
                 finally:
                     helper_output.close()
+                    # A PyInstaller one-file EXE has a parent bootloader and a
+                    # separate child. Killing only the health-reporting child
+                    # leaves the parent holding the image file on Windows.
+                    # Scope cleanup strictly to this disposable test's EXE path.
+                    cleanup_script = r"""
+                    $target = [IO.Path]::GetFullPath($env:ISS_TEST_TARGET)
+                    $deadline = (Get-Date).AddSeconds(20)
+                    do {
+                        $running = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+                            Where-Object { $_.ExecutablePath -and
+                                [string]::Equals($_.ExecutablePath, $target, [StringComparison]::OrdinalIgnoreCase) })
+                        if ($running.Count -eq 0) { break }
+                        foreach ($item in $running) {
+                            & "$env:SystemRoot\\System32\\taskkill.exe" /PID $item.ProcessId /T /F 2>$null | Out-Null
+                        }
+                        Start-Sleep -Milliseconds 250
+                    } while ((Get-Date) -lt $deadline)
+                    """
+                    subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive",
+                                    "-Command", cleanup_script], capture_output=True, timeout=30)
+                    # The rollback fixture can still be closing. On success,
+                    # the application must no longer lock its temporary EXE.
                     health = updater._load_json(plan["health_marker"], {})
-                    if mode == "healthy" and health.get("pid"):
-                        subprocess.run(["taskkill.exe", "/PID", str(health["pid"]), "/T", "/F"], capture_output=True)
+                    if health.get("pid"):
+                        subprocess.run(["taskkill.exe", "/PID", str(health["pid"]), "/T", "/F"],
+                                       capture_output=True)
                     for process in processes:
                         if process.poll() is None:
                             process.kill()
-                            process.wait()
-                    # Include rollback fixture processes even if an assertion fails early.
-                    subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
-                                    "$deadline=(Get-Date).AddSeconds(5); do { "
-                                    "$p=Get-CimInstance Win32_Process | Where-Object ExecutablePath -eq $env:ISS_TEST_TARGET; "
-                                    "if (-not $p) { break }; Start-Sleep -Milliseconds 100 "
-                                    "} while ((Get-Date) -lt $deadline); "
-                                    "$p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"],
-                                   capture_output=True)
+                            process.wait(timeout=10)
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        try:
+                            with old.open("r+b"):
+                                pass
+                            break
+                        except PermissionError:
+                            time.sleep(0.25)
+                    else:
+                        self.fail(f"The disposable EXE remains locked after process cleanup: {old}")
 
     def test_success_preserves_generic_name_settings_and_shortcut(self):
         self.run_install()
