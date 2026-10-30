@@ -1,5 +1,5 @@
 APP_NAME = "Image Sheet Splitter"
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.7.1"
 APP_ID = "TechSavage1989.ImageSheetSplitter"
 APP_USER_MODEL_ID = "TechSavage1989.ImageSheetSplitter.Portable"
 REPOSITORY = "TechSavage1989/Image-Sheet-Splitter"

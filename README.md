@@ -18,6 +18,7 @@ Image Sheet Splitter is a Windows-first portable utility for sprite sheets, artw
 - Lets you choose the output directory and adjust tolerance/minimum crop sizes.
 - Includes detachable Results, draggable layout splitters, hover help, built-in documentation, configurable logging, and configurable settings storage.
 - Uses a stable portable launch filename: Image Sheet Splitter.exe.
+- Shows the installed version beside the main-window title for quick verification after an update.
 - Includes a manual-install updater with cached conditional checks, cryptographic digest verification, rollback, and post-restart health confirmation.
 
 ## Download

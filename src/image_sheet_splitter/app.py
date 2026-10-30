@@ -890,7 +890,9 @@ class App(APP_TK_BASE):
 
         top = ttk.Frame(self)
         top.pack(fill="x", **pad)
-        ttk.Label(top, text=APP_NAME, font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        # Show the installed version without opening About. This also makes
+        # a successful portable updater test visually easy to confirm.
+        ttk.Label(top, text=f"{APP_NAME}  v{APP_VERSION}", font=("Segoe UI", 16, "bold")).pack(anchor="w")
         ttk.Label(
             top,
             text="Batch-splits images packed on a solid separator background."
