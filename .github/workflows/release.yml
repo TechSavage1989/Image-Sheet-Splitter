@@ -49,7 +49,7 @@ jobs:
       - run: python scripts/verify_windows_build.py "dist/Image Sheet Splitter.exe"
       - run: python scripts/package_release.py --exe "dist/Image Sheet Splitter.exe"
       - run: python scripts/verify_release.py
-      - name: Refuse to overwrite an existing release and verify any existing tag
+      - name: Validate release target and reject existing releases or mismatched tags
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,33 +57,59 @@ jobs:
         run: |
           set -euo pipefail
           TARGET_SHA="$(git rev-parse HEAD)"
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ -z "$MAIN_SHA" ] || [ "$TARGET_SHA" != "$MAIN_SHA" ]; then
+            echo "This token can only publish from the current main branch head."
+            echo "Choose ref=main and retry. The application version does not need to change."
+            exit 1
+          fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release already exists; refusing to overwrite it."
             exit 1
           fi
-          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
-            EXISTING="$(git rev-list -n 1 "$RELEASE_TAG")"
+          if git ls-remote --exit-code origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            EXISTING="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | cut -f1)"
             if [ "$EXISTING" != "$TARGET_SHA" ]; then
               echo "Tag exists at a different commit; refusing to move it."
               exit 1
             fi
-            echo "Existing tag points to the checked-out release commit; safe to resume release creation."
+            echo "Existing tag matches the checked-out commit."
           else
-            git tag "$RELEASE_TAG" "$TARGET_SHA"
-            git push origin "$RELEASE_TAG"
+            echo "Missing tag will be created by GitHub Releases at the verified main commit."
           fi
-      - name: Create GitHub release
+      - name: Create GitHub release with all three assets
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+          TARGET_SHA="$(git rev-parse HEAD)"
           VERSION="${RELEASE_TAG#v}"
           gh release create "$RELEASE_TAG" \
             release/Image_Sheet_Splitter_Windows_x64_Portable.zip \
             release/update-manifest.json \
             release/SHA256SUMS.txt \
+            --target "$TARGET_SHA" \
             --title "Image Sheet Splitter $VERSION" \
-            --notes-file "docs/releases/$VERSION.md" \
-            --verify-tag
+            --notes-file "docs/releases/$VERSION.md"
+      - name: Verify published assets, tag, and downloaded checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TARGET_SHA="$(git rev-parse HEAD)"
+          REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | cut -f1)"
+          if [ "$REMOTE_TAG_SHA" != "$TARGET_SHA" ]; then
+            echo "Published tag does not point to the verified release commit."
+            exit 1
+          fi
+          VERIFY_DIR="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" --dir "$VERIFY_DIR" --pattern "Image_Sheet_Splitter_Windows_x64_Portable.zip" --pattern "update-manifest.json" --pattern "SHA256SUMS.txt"
+          for asset in Image_Sheet_Splitter_Windows_x64_Portable.zip update-manifest.json SHA256SUMS.txt; do
+            test -s "$VERIFY_DIR/$asset" || { echo "Missing or empty published asset: $asset"; exit 1; }
+          done
+          (cd "$VERIFY_DIR" && sha256sum -c SHA256SUMS.txt)
+          echo "Verified published release tag, three downloadable assets, and SHA-256 digests."
