@@ -22,13 +22,15 @@ Image Sheet Splitter is a Windows-first portable utility for sprite sheets, artw
 
 ## Download
 
-No Image Sheet Splitter release has been published to GitHub yet.
+The first stable Windows portable release, **v1.7.0**, was published on October 30, 2026.
 
-The authorized release location is the repository's Releases page:
+- [Download the latest stable Windows portable ZIP](https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/latest/download/Image_Sheet_Splitter_Windows_x64_Portable.zip)
+- [View the latest stable release and notes](https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/latest)
+- [Browse all releases, including future previews](https://github.com/TechSavage1989/Image-Sheet-Splitter/releases)
 
-https://github.com/TechSavage1989/Image-Sheet-Splitter/releases
+The portable ZIP contains a single **Image Sheet Splitter** folder with **Image Sheet Splitter.exe** and a README. Download it, extract that folder to the desired location, and run the EXE. No installation or separate Python runtime is required.
 
-Until a release is published, build the Windows portable executable from source using the verified steps under Development. Do not use a guessed or stale version-specific asset URL.
+The v1.7.0 release's ZIP and updater manifest were published with GitHub-provided SHA-256 digests. The original publication workflow reported a failure after uploading the release because its final Unix-style checksum command could not read Windows CRLF line endings; the release itself and tag were created. This is a release-verification scripting issue, not proof of a corrupt application download. The validation script is corrected on main for future releases.
 
 ## Requirements
 
@@ -48,7 +50,7 @@ The Windows build validates the x64 executable, product/version metadata, and al
 
 ## Getting started
 
-1. Obtain a published portable release when one is available, or build it from source as described under Development.
+1. Download the [latest stable Windows portable ZIP](https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/latest/download/Image_Sheet_Splitter_Windows_x64_Portable.zip), or build from source as described under Development.
 2. If using a ZIP release, extract the single Image Sheet Splitter folder to the directory where you want to keep the app.
 3. Run Image Sheet Splitter.exe.
 4. Choose an output directory.

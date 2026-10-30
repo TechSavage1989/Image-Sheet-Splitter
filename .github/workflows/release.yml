@@ -117,5 +117,8 @@ jobs:
           for asset in Image_Sheet_Splitter_Windows_x64_Portable.zip update-manifest.json SHA256SUMS.txt; do
             test -s "$VERIFY_DIR/$asset" || { echo "Missing or empty published asset: $asset"; exit 1; }
           done
+          # The published checksum file may contain Windows CRLF endings.
+          # Normalize only the downloaded local copy before GNU sha256sum.
+          sed -i 's/\r$//' "$VERIFY_DIR/SHA256SUMS.txt"
           (cd "$VERIFY_DIR" && sha256sum -c SHA256SUMS.txt)
           echo "Verified published release tag, three downloadable assets, and SHA-256 digests."

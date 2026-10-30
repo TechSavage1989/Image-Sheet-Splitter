@@ -75,10 +75,13 @@ def main():
     if not has_more:
         manifest["read_more_url"] = ""
     (out / "update-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    (out / "SHA256SUMS.txt").write_text(
-        f"{digest}  {asset_name}\n{sha256_file(out / 'update-manifest.json')}  update-manifest.json\n",
-        encoding="utf-8",
+    # Emit platform-independent LF endings so Windows Git Bash can verify
+    # published SHA256SUMS directly without treating CR as a filename character.
+    checksum_lines = (
+        f"{digest}  {asset_name}\n"
+        f"{sha256_file(out / 'update-manifest.json')}  update-manifest.json\n"
     )
+    (out / "SHA256SUMS.txt").write_bytes(checksum_lines.encode("utf-8"))
 
     print(f"Portable asset: {asset_path}")
     print(f"Manifest: {out / 'update-manifest.json'}")

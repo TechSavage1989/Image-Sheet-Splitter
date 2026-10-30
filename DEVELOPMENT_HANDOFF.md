@@ -6,7 +6,7 @@
 - Public repository: https://github.com/TechSavage1989/Image-Sheet-Splitter; default branch: main.
 - Continued from prepared main commit d80ad901f729ade37b1e509532c2c67b465205ec, not from a new implementation.
 - Source sync and first 1.7.0 release publication are authorized. This is not permission for visibility/access changes, credentials, unrelated features, or future releases.
-- No release or v1.7.0 tag existed at the 2026-10-30 Desktop inspection. Release dispatch remains pending; do not advertise an asset as published until GitHub confirms it.
+- Published baseline: v1.7.0 GitHub stable release created on 2026-10-30 at 19:27:23 UTC, tag pointing to d80ad901f729ade37b1e509532c2c67b465205ec. Main has subsequent unpublished source/updater validation changes and release-pipeline fixes; do not treat main as identical to the already published 1.7.0 binary.
 
 ## Runtime and updater contract
 
@@ -63,28 +63,19 @@ Completed locally: root/docs/compile checks; 19 source/native tests (the two pos
 
 The compiled app reports a viewable Tk window and passes process/version/token health validation. This is programmatic native health evidence, not an interactive visual inspection. Explorer drag-and-drop, foreground behavior, and manual GUI inspection remain unverified in this continuation because Computer Use stopped on unsupported Windows Firefox URL-policy enforcement. No upgrade from a previously published Image Sheet Splitter release is claimed.
 
-## Publication procedure and remaining access blocker
+## Published v1.7.0 release and follow-up
 
-Use the corrected workflow:
+The public stable release is [v1.7.0](https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/tag/v1.7.0), published 2026-10-30T19:27:23Z with these exact three assets:
 
-https://github.com/TechSavage1989/Image-Sheet-Splitter/actions/workflows/release.yml
+- Image_Sheet_Splitter_Windows_x64_Portable.zip (19,337,910 bytes, GitHub SHA-256 ec48c07e54e5ca4488b8e7b4094af24c0acbae88f9325f896496361c844e9375)
+- update-manifest.json (1,663 bytes, GitHub SHA-256 1f0b1549e885a8106a70dfcb6b30eb94e1450bf485144c23ac9bc5d8bbc4a17e)
+- SHA256SUMS.txt (201 bytes, GitHub SHA-256 a3bebffbd1449e521aea8dccdcd1877643a1b5ee9f7847842623e85da11875ac)
 
-Verify that CI passed on the exact latest main commit. Then run **Publish stable release** on main with:
+Tag v1.7.0 resolves to d80ad901f729ade37b1e509532c2c67b465205ec; this is the published build's source, not newer main. The release workflow run 41115259781 verified the Windows EXE/build/package, created the release and tag, then failed on its final remote digest verification. Cause: SHA256SUMS.txt had Windows CRLF line endings and GNU sha256sum -c on Git Bash interpreted the CR as part of each filename. This did not itself indicate any hash mismatch; release asset metadata provides digests, but the remote checksum verification step failed. Do not rerun the existing tag or overwrite its assets. Release verification now strips CR from a downloaded *local copy* before checking; scripts/package_release.py emits LF endings for future assets. Current code version remains 1.7.0 because this change only repairs release automation/documentation.
 
-- tag: `v1.7.0`
-- ref: `main`
-- confirm: `publish`
+A later v1.7.1 application release must be approved separately and incorporate newer main's updater fixes. To establish the first end-to-end version-to-version updater test, install the published v1.7.0 portable app first, then publish v1.7.1 from a newly versioned, validated source commit. Test update notification, explicit Download, SHA-256 verification, Install and restart, stable filename, settings preservation, rollback and healthy relaunch on Windows. No such v1.7.0-to-v1.7.1 test has occurred yet.
 
-Do not rerun historical failed workflow 41102816840 or release a historical commit with different workflow files. The corrected workflow creates the tag through GitHub Releases at verified current main, refuses existing releases/mismatched tags, uploads the assets, downloads them, and verifies checksums and the remote tag.
+Updater manifest feed:
+https://github.com/TechSavage1989/Image-Sheet-Splitter/releases/latest/download/update-manifest.json
 
-Expected assets:
-
-- `Image_Sheet_Splitter_Windows_x64_Portable.zip`
-- `update-manifest.json`
-- `SHA256SUMS.txt`
-
-The ZIP contains one `Image Sheet Splitter` folder holding the executable and README.txt. Upload all three assets together. Never overwrite an existing release.
-
-The connected GitHub tools support source publication and CI inspection but expose no workflow dispatch or release creation. The Desktop has no detected GitHub CLI login or credential-manager GitHub account. Its existing Firefox session could not be used: Computer Use stopped with "browser URL policy enforcement is not yet supported for the current Windows browser." No dispatch was attempted and no credential was created. A supported authenticated browser or CLI is required for the already-authorized final dispatch.
-
-After publication, verify the public release URL, exactly three assets, latest-release manifest, ZIP size and SHA-256, manifest SHA-256, and tag commit. Update README Download and this handoff only after those live checks pass.
+Hosted CI on the final source/doc fix commit must be checked before declaring these later automation changes validated.

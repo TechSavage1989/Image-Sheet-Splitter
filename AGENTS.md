@@ -61,4 +61,4 @@ Release packaging must upload these assets together for a stable release:
 - update-manifest.json
 - SHA256SUMS.txt
 
-The manifest version and release tag must match vMAJOR.MINOR.PATCH. The 1.7.0 release workflow is prepared but requires an explicit GitHub workflow dispatch because the connected GitHub tool cannot dispatch workflows or create releases directly.
+The manifest version and release tag must match vMAJOR.MINOR.PATCH. The first stable v1.7.0 release is published. Do not overwrite it. Later releases require their own explicit publication approval, version increment, exact-commit CI validation, and GitHub Actions dispatch. The publishing workflow should tolerate checksum files with CRLF line endings and generate LF checksum files for new releases.
