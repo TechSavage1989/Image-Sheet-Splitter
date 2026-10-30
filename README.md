@@ -136,7 +136,7 @@ Run the repository checks from an extracted source tree or normal checkout:
 
     python scripts/check_root.py
     python -m unittest discover -s tests -v
-    python -m py_compile src/image_sheet_splitter/*.py scripts/*.py
+    python -m compileall -q src/image_sheet_splitter scripts
 
 On Windows, build the portable executable by double-clicking Build Portable EXE.bat or running:
 

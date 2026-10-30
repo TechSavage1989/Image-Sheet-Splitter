@@ -74,7 +74,7 @@ Cross-platform source checks:
 
     python scripts/check_root.py
     python -m unittest discover -s tests -v
-    python -m py_compile src/image_sheet_splitter/*.py scripts/*.py
+    python -m compileall -q src/image_sheet_splitter scripts
 
 Windows portable build:
 
