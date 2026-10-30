@@ -13,6 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from image_sheet_splitter import paths, updater
+from image_sheet_splitter.version import APP_VERSION
 
 
 @unittest.skipUnless(os.name == "nt", "Requires native Windows processes and filesystem")
@@ -75,8 +76,12 @@ class WindowsUpdaterTests(unittest.TestCase):
                 plan = json.loads(plan_path.read_text())
                 # The real installed app has exited; use a PID that is no longer alive.
                 plan["old_pid"] = 2147483647
-                if compiled and mode == "version":
-                    plan["to_version"] = "9.9.9"  # Force rejection of the actual app's health response.
+                if compiled:
+                    # Synthetic fixtures still report 1.7.0. A compiled EXE
+                    # reports the version of the candidate being tested.
+                    plan["to_version"] = APP_VERSION
+                    if mode == "version":
+                        plan["to_version"] = "9.9.9"
                 updater._atomic_json_write(plan_path, plan)
                 backup = Path(plan["backup_exe"])
                 backup.write_bytes(b"older rollback replaced only after preflight")
@@ -108,7 +113,7 @@ class WindowsUpdaterTests(unittest.TestCase):
                             self.assertEqual(args["--post-update-plan"], str(plan_path.resolve()))
                             self.assertEqual(args["--post-update-token"], plan["health_token"])
                         health = json.loads(Path(plan["health_marker"]).read_text())
-                        self.assertEqual(health["version"], "1.7.0")
+                        self.assertEqual(health["version"], APP_VERSION if compiled else "1.7.0")
                         self.assertEqual(health["token"], plan["health_token"])
                     else:
                         self.assertEqual(code, 30, output)
@@ -133,7 +138,7 @@ class WindowsUpdaterTests(unittest.TestCase):
                         if compiled and path == settings:
                             # Normal startup rewrites JSON formatting; all settings must survive.
                             expected = json.loads(content)
-                            expected["app_version"] = "1.7.0"
+                            expected["app_version"] = APP_VERSION
                             self.assertEqual(json.loads(path.read_bytes()), expected)
                         else:
                             self.assertEqual(path.read_bytes(), content, str(path))
@@ -154,7 +159,7 @@ class WindowsUpdaterTests(unittest.TestCase):
                                 [string]::Equals($_.ExecutablePath, $target, [StringComparison]::OrdinalIgnoreCase) })
                         if ($running.Count -eq 0) { break }
                         foreach ($item in $running) {
-                            & "$env:SystemRoot\\System32\\taskkill.exe" /PID $item.ProcessId /T /F 2>$null | Out-Null
+                            & (Join-Path $env:SystemRoot "System32/taskkill.exe") /PID $item.ProcessId /T /F 2>$null | Out-Null
                         }
                         Start-Sleep -Milliseconds 250
                     } while ((Get-Date) -lt $deadline)
