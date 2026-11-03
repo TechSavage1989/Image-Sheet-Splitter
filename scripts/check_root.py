@@ -6,6 +6,7 @@ ALLOWED_ROOT_ENTRIES = {
     ".github",
     ".gitignore",
     "AGENTS.md",
+    "CLAUDE.md",
     "Build Portable EXE.bat",
     "DEVELOPMENT_HANDOFF.md",
     "README.md",
