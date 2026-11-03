@@ -34,17 +34,49 @@ Image Sheet Splitter is a Windows-first portable utility for sprite sheets, artw
 
 ## Screenshots
 
-**Splitting a sprite sheet: the input sheet and the PNG files the app exported**
+### Splitting sheets
 
-<img src="docs/images/sprite-sheet-output.png" alt="Splitting a sprite sheet: the input sheet and the PNG files the app exported" width="900">
+<table>
+  <tr>
+    <td width="50%"><b>Sprite sheet on a magenta background split into 8 PNG files</b><br><img src="docs/images/sprite-sheet-output.png" alt="Sprite sheet on a magenta background split into 8 PNG files" width="440"></td>
+    <td width="50%"><b>Wii U Virtual Console dimensions get descriptive names; other sizes stay generic</b><br><img src="docs/images/vc-artwork-naming.png" alt="Wii U Virtual Console dimensions get descriptive names; other sizes stay generic" width="440"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>JPEG sheet on white, split with a higher background tolerance</b><br><img src="docs/images/jpeg-sheet-output.png" alt="JPEG sheet on white, split with a higher background tolerance" width="440"></td>
+    <td width="50%"><b>WebP UI atlas on a green background</b><br><img src="docs/images/webp-atlas-output.png" alt="WebP UI atlas on a green background" width="440"></td>
+  </tr>
+</table>
 
-**Wii U Virtual Console dimensions get descriptive names; other sizes stay generic**
+### Adding sheets and detection
 
-<img src="docs/images/vc-artwork-naming.png" alt="Wii U Virtual Console dimensions get descriptive names; other sizes stay generic" width="900">
+<table>
+  <tr>
+    <td width="50%"><b>A folder of JPEG, WebP and BMP sheets dropped onto the window and split</b><br><img src="docs/images/drag-drop-formats.png" alt="A folder of JPEG, WebP and BMP sheets dropped onto the window and split" width="440"></td>
+    <td width="50%"><b>Background tolerance and minimum crop sizes in Settings</b><br><img src="docs/images/settings-detection.png" alt="Background tolerance and minimum crop sizes in Settings" width="440"></td>
+  </tr>
+</table>
 
-**Built-in Documentation Center**
+### Results and layout
 
-<img src="docs/images/documentation-center.png" alt="Built-in Documentation Center" width="900">
+<table>
+  <tr>
+    <td width="50%"><b>Results panel detached into its own window</b><br><img src="docs/images/detached-results.png" alt="Results panel detached into its own window" width="440"></td>
+    <td width="50%"><b>Hover help on the Split Images button</b><br><img src="docs/images/hover-help.png" alt="Hover help on the Split Images button" width="440"></td>
+  </tr>
+</table>
+
+### Settings, help and updates
+
+<table>
+  <tr>
+    <td width="50%"><b>File logging settings</b><br><img src="docs/images/settings-logging.png" alt="File logging settings" width="440"></td>
+    <td width="50%"><b>Built-in Documentation Center</b><br><img src="docs/images/documentation-center.png" alt="Built-in Documentation Center" width="440"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>Manual update check against the stable release feed</b><br><img src="docs/images/update-check.png" alt="Manual update check against the stable release feed" width="440"></td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Download
 
