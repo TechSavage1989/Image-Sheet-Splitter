@@ -1,10 +1,21 @@
 <p align="center">
   <img src="assets/icons/Image_Sheet_Splitter.png" width="112" alt="Image Sheet Splitter icon">
 </p>
+
 <h1 align="center">Image Sheet Splitter</h1>
 <p align="center">Split image sheets into individual PNG files using solid separator backgrounds.</p>
+
 <p align="center">
-  <a href="#download">Download</a> | <a href="#getting-started">Get started</a> | <a href="#features">Features</a> | <a href="#updates-and-settings">Updates</a> | <a href="#development">Development</a>
+  <a href="#download">Download</a> ·
+  <a href="#getting-started">Get started</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#updates-and-settings">Updates</a> ·
+  <a href="#development">Development</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/hero.png" alt="Image Sheet Splitter main window" width="900">
 </p>
 
 ## Features
@@ -20,6 +31,20 @@ Image Sheet Splitter is a Windows-first portable utility for sprite sheets, artw
 - Uses a stable portable launch filename: Image Sheet Splitter.exe.
 - Shows the installed version beside the main-window title for quick verification after an update.
 - Includes a manual-install updater with cached conditional checks, cryptographic digest verification, rollback, and post-restart health confirmation.
+
+## Screenshots
+
+**Splitting a sprite sheet: the input sheet and the PNG files the app exported**
+
+<img src="docs/images/sprite-sheet-output.png" alt="Splitting a sprite sheet: the input sheet and the PNG files the app exported" width="900">
+
+**Wii U Virtual Console dimensions get descriptive names; other sizes stay generic**
+
+<img src="docs/images/vc-artwork-naming.png" alt="Wii U Virtual Console dimensions get descriptive names; other sizes stay generic" width="900">
+
+**Built-in Documentation Center**
+
+<img src="docs/images/documentation-center.png" alt="Built-in Documentation Center" width="900">
 
 ## Download
 
